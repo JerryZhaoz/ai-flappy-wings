@@ -159,27 +159,53 @@ const App: React.FC = () => {
     }
   };
 
-  const handleGlobalClick = useCallback((e: KeyboardEvent) => {
+  // Global Input Handler (Keyboard + Touch)
+  const handleInput = useCallback(() => {
       // Don't jump if modals are open
-      if (showShop || showLeaderboard) {
-          if (e.code === 'Escape') {
-            setShowShop(false);
-            setShowLeaderboard(false);
-          }
-          return;
-      }
+      if (showShop || showLeaderboard) return;
 
-      if (e.code === 'Space' || e.code === 'ArrowUp') {
-          if (gameState === GameState.START) handleStart();
-          else if (gameState === GameState.PLAYING) setTriggerJump(prev => prev + 1);
-          else if (gameState === GameState.GAME_OVER) handleRestart();
-      }
+      if (gameState === GameState.START) handleStart();
+      else if (gameState === GameState.PLAYING) setTriggerJump(prev => prev + 1);
+      else if (gameState === GameState.GAME_OVER) handleRestart();
   }, [gameState, showShop, showLeaderboard]);
 
+  // Keyboard Listener
   useEffect(() => {
-      window.addEventListener('keydown', handleGlobalClick);
-      return () => window.removeEventListener('keydown', handleGlobalClick);
-  }, [handleGlobalClick]);
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (showShop || showLeaderboard) {
+            if (e.code === 'Escape') {
+              setShowShop(false);
+              setShowLeaderboard(false);
+            }
+            return;
+        }
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+            handleInput();
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleInput, showShop, showLeaderboard]);
+
+  // Touch Listener (Tap anywhere to jump)
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+        // Prevent default only if we are in playing state to stop scrolling,
+        // but allow buttons to work (buttons stop propagation or we check target)
+        const target = e.target as HTMLElement;
+        const isButton = target.closest('button');
+        
+        if (!isButton && !showShop && !showLeaderboard) {
+            // e.preventDefault(); // Optional: might block scrolling if needed
+            handleInput();
+        }
+    };
+    
+    // Use capture false
+    window.addEventListener('touchstart', handleTouchStart);
+    return () => window.removeEventListener('touchstart', handleTouchStart);
+  }, [handleInput, showShop, showLeaderboard]);
+
 
   const currentSkin = AVAILABLE_SKINS.find(s => s.id === playerData.selectedSkinId) || AVAILABLE_SKINS[0];
 
@@ -200,7 +226,8 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative w-full max-w-md aspect-[2/3] border-4 border-slate-700 rounded-xl overflow-hidden bg-sky-300">
+      {/* Game Container - Added padding safe area for mobile */}
+      <div className="relative w-full max-w-md aspect-[2/3] border-4 border-slate-700 rounded-xl overflow-hidden bg-sky-300 shadow-2xl">
         
         <GameCanvas 
             gameState={gameState} 
@@ -219,7 +246,7 @@ const App: React.FC = () => {
             
             <div className="flex gap-4 mb-6">
                  <button 
-                    onClick={() => setShowShop(true)}
+                    onClick={(e) => { e.stopPropagation(); setShowShop(true); }}
                     className="flex flex-col items-center gap-1 group"
                  >
                     <div className="p-3 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors border border-white/20">
@@ -229,7 +256,7 @@ const App: React.FC = () => {
                  </button>
                  
                  <button 
-                    onClick={() => { generateLeaderboard(); setShowLeaderboard(true); }}
+                    onClick={(e) => { e.stopPropagation(); generateLeaderboard(); setShowLeaderboard(true); }}
                     className="flex flex-col items-center gap-1 group"
                  >
                     <div className="p-3 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors border border-white/20">
@@ -240,12 +267,13 @@ const App: React.FC = () => {
             </div>
 
             <button
-              onClick={handleStart}
+              onClick={(e) => { e.stopPropagation(); handleStart(); }}
               className="bg-yellow-400 hover:bg-yellow-300 text-black border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1 font-bold py-4 px-12 rounded-full text-xl transition-all flex items-center gap-2 shadow-lg"
             >
               <PlayIcon className="h-6 w-6" />
               FLY
             </button>
+            <p className="text-white/70 text-xs mt-4 animate-pulse">Tap anywhere or Press Space</p>
           </div>
         )}
 
@@ -288,13 +316,13 @@ const App: React.FC = () => {
 
             <div className="flex gap-3">
                 <button
-                onClick={() => { setGameState(GameState.START); }}
+                onClick={(e) => { e.stopPropagation(); setGameState(GameState.START); }}
                 className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 px-4 rounded-full"
                 >
                 <ShoppingBagIcon className="h-5 w-5" />
                 </button>
                 <button
-                onClick={handleRestart}
+                onClick={(e) => { e.stopPropagation(); handleRestart(); }}
                 className="bg-green-500 hover:bg-green-400 text-white border-b-4 border-green-700 active:border-b-0 active:translate-y-1 font-bold py-3 px-8 rounded-full text-lg transition-all flex items-center gap-2 flex-1 justify-center"
                 >
                 <ArrowPathIcon className="h-5 w-5" />
@@ -311,7 +339,7 @@ const App: React.FC = () => {
                     <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                         <ShoppingBagIcon className="h-6 w-6 text-yellow-400"/> SHOP
                     </h2>
-                    <button onClick={() => setShowShop(false)} className="text-slate-400 hover:text-white">
+                    <button onClick={(e) => { e.stopPropagation(); setShowShop(false); }} className="text-slate-400 hover:text-white">
                         <XMarkIcon className="h-8 w-8" />
                     </button>
                 </div>
@@ -329,7 +357,7 @@ const App: React.FC = () => {
 
                         return (
                             <div key={skin.id} 
-                                onClick={() => handleBuySkin(skin)}
+                                onClick={(e) => { e.stopPropagation(); handleBuySkin(skin); }}
                                 className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all cursor-pointer ${
                                     isSelected ? 'bg-indigo-900 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-slate-500'
                                 }`}
@@ -370,7 +398,7 @@ const App: React.FC = () => {
                     <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                         <TrophyIcon className="h-6 w-6 text-purple-400"/> RANKING
                     </h2>
-                    <button onClick={() => setShowLeaderboard(false)} className="text-slate-400 hover:text-white">
+                    <button onClick={(e) => { e.stopPropagation(); setShowLeaderboard(false); }} className="text-slate-400 hover:text-white">
                         <XMarkIcon className="h-8 w-8" />
                     </button>
                 </div>

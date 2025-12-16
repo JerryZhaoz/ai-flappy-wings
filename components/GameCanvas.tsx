@@ -245,12 +245,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, setSco
       ref={canvasRef}
       width={CANVAS_WIDTH}
       height={CANVAS_HEIGHT}
-      className="w-full h-full max-w-md mx-auto shadow-2xl rounded-lg cursor-pointer bg-slate-800"
-      onMouseDown={jump}
-      onTouchStart={(e) => {
-        e.preventDefault();
-        jump();
+      className="w-full h-full cursor-pointer bg-slate-800 touch-none"
+      style={{ 
+        width: '100%', 
+        height: 'auto',
+        aspectRatio: `${CANVAS_WIDTH}/${CANVAS_HEIGHT}`
       }}
+      // Mouse/Touch events are now handled by global listener in App.tsx for better mobile experience
     />
   );
 };
